@@ -49,48 +49,75 @@ def load_abalone_dataset():
 # 파라미터를 초기화
 # 메인 함수인 abalone_exec()에서 호출됨
 # 단층 퍼셉트론의 가중치 파라미터 weight와 편향 파라미터 bias를 초기화
+# load_abalone_dataset() 함수에서 input_cnt, output_cnt 변수에 지정한 입출력 벡터 크기를 이용해 가중치 행렬과 편향 벡터의 크기를 결정
 def init_model():
-    global weight, bias, input_cnt, output_cnt
+    global weight, bias, input_cnt, output_cnt # 전역 변수로 선언
+    # 가중치 행렬 값들은 np.random.normal() 함수를 이용해 정규분포를 갖는 난숫값으로 초기화
+    # 경사하강법의 출발점에 해당하는 파라미터의 초깃값을 실행할 때마다 달라지게 만들려는 의도
     weight = np.random.normal(RND_MEAN, RND_STD, [input_cnt, output_cnt])
+    # 편향은 초기에 지나친 영향을 주어 학습에 역효과를 불러오지 않도록 0으로 초기화
     bias = np.zeros([output_cnt])
 
+# 학습 및 평가 함수 정의
+# 학습과 평가 과정을 일괄 실행
+# 적재된 데이터셋과 초기화된 파라미터를 이용하여 학습 및 평가의 전체 과정을 수행
+# 이중 반복을 이용, epoch_count 인수로 지정된 에포크 수 만큼 학습 을 반복
+# 반복문 안에서 다시 step_count값 만큼 미니배치 처리를 반복
 def train_and_test(epoch_count, mb_size, report):
-    step_count = arrange_data(mb_size)
+    step_count = arrange_data(mb_size) # 데이터를 뒤섞고 학습용 데이터셋과 평가용 데이터셋을 분리하는 등의 데이터 정렬 작업도 수행
     test_x, test_y = get_test_data()
 
     for epoch in range(epoch_count):
         losses, accs = [], []
 
-        for n in range(step_count):
-            train_x, train_y = get_train_data(mb_size, n)
+        for n in range(step_count): 
+            train_x, train_y = get_train_data(mb_size, n) # 학습용 미니배치 데이터를 얻어와 run_train() 함수로 학습시키는 방식으로 처리
             loss, acc = run_train(train_x, train_y)
+            # 미니배치 단위에서의 비용과 정확도를 보고받아 리스트 변수 losses와 accs에 집계
             losses.append(loss)
             accs.append(acc)
-
+        
+        # 각 에포크가 끝나면 report 인수로 지정된 보고 주기에 해당하는 지 검사
+        # 해당되면 중간 평사 함수 run_test()를 호출한 후 그 결과를 출력
+        # 이때 학습 과정에서 집계한 손실 함수와 정확도의 평균값도 함께 출력
         if report > 0 and (epoch + 1) % report == 0:
             acc = run_test(test_x, test_y)
             print('Epoch {}: loss = {:5.3f}, accuracy = {:5.3f}/{:5.3f}'.format(epoch + 1, np.mean(losses), np.mean(accs), acc))
 
+    # 전체 에포크 처리가 끝나면 다시 최종 평가 함수 run_test()를 호출하고 그 결과를 출력
+    # 중간 평가와 최종 평가에 동일한 평가용 데이터셋을 반복적으로 이용하기 때문에 이를 이중 반복 실행 전에 미리 get_test_data() 함수를 호출해  test_x, test_y에 저장해두어 반복해서 활용
     final_acc = run_test(test_x, test_y)
     print('\nFinal Test : final accuracy = {:5.3f}'.format(final_acc))
 
 # 학습 및 평가 데이터 획득 함수 정의
-def arrange_data(mb_size):
+# train_and_test() 함수가 학습 및 평가 데이터를 얻을 때 호출하는 세 함수를 정의
+# arrange_data() 함수는 train_and_test() 함수가 이중 반복을 준비할 때 단 한 번 호출
+def arrange_data(mb_size): 
     global data, shuffle_map, test_begin_idx
-    shuffle_map = np.arrange(data.shape[0])
-    np.random.shuffle(shuffle_map)
-    step_count = int(data.shape[0] * 0.8) // mb_size
+    shuffle_map = np.arrange(data.shape[0]) # 데이터 수만큼의 일련번호를 발생
+    np.random.shuffle(shuffle_map)          # 무작위로 순서를 섞는다.
+    step_count = int(data.shape[0] * 0.8) // mb_size 
     test_begin_idx = step_count * mb_size
     return step_count
 
+# 평가 데이터를 일괄 공급
 def get_test_data():
     global data, shuffle_map, test_begin_idx, output_cnt
     test_data = data[shuffle_map[test_begin_idx:]]
+    # 각 행에 대해 뒤에서 output_cnt 번째 되는 원소 위치를 기준으로 분할해 앞 쪽을 입력 벡터, 뒷 쪽을 정답 벡터로 반황
     return test_data[:, :-output_cnt], test_data[:, -output_cnt:]
 
+# 학습 데이터를 공급
+# get_test_dat() 함수와 비슷한 처리를 수행
 def get_train_data(mb_size, nth):
     global data, shuffle_map, test_begin_idx, output_cnt
-    if nth == 0:
+    if nth == 0: # 각 에포크 첫 번재 호출, nth값이 0일 때에 한하여 학습 데이터 부분에 대한 부분적인 순서를 뒤섞어 에포크마다 다른 순서로 학습이 수행
         np.random.shuffle(shuffle_map[:test_begin_idx])
+
+    # 미니배치 구간의위치를 따져 그 구간에 해당하는 suffle_map이 가리키는 데이터들만 반환
     train_data = data[shuffle_map[mb_size * nth : mb_size * (nth + 1)]]
+
+    # 반환하는 각 행에 대해 입력 벡터 부분과 정답 벡터 부분을 분할해 반환
     return train_data[:, :-output_cnt], train_data[:, -output_cnt:]
+
+
