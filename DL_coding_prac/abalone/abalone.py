@@ -120,4 +120,31 @@ def get_train_data(mb_size, nth):
     # 반환하는 각 행에 대해 입력 벡터 부분과 정답 벡터 부분을 분할해 반환
     return train_data[:, :-output_cnt], train_data[:, -output_cnt:]
 
+# 학습 실행 함수와 평가 실행 함수 정의
+# train_and_test() 함수가 호출하는 학습 실행 함수와 평가 실행 함수를 정의
+# 미니배치 학습을 처리를 담당
+# 학습용 데이터의 일부로 주어지는 미니배치 입력 행렬 x와 정답 행렬 y를 이용해 한 스텝의 학습을 수행
+def run_train(x, y):
+    # 순전파 처리
+    output, aux_nn = forward_neuralnet(x)      # forward_neuralnet() 함수가 단층 퍼셉트론 신경망에 대한 순전파를 수행, 입력 행렬 x로부터 신경망 출력 output을 구한다.
+    loss, aus_pp = forward_postproc(output, y) # forward_postproc() 함수가 회귀 분석 문제의 성격에 맞춘 후처리 순전파 작업을 수행해 output과 y로부터 손실 함수 loss를 계산
+    
+    # 보고용 정확도 계산
+    accuracy = eval_accuracy(output, y)
 
+    G_loss = 1.0
+
+    # 역전파 처리
+    # G_loss로 부터 G_output을 구한다.
+    # 순전파 함수가 역전파용 보조 정보로서 보고했던 aux_pp 제공
+    G_output = backprop_postproc(G_loss, aux_pp)
+    backprop_neuralnet(G_output, aux_nn)
+
+    return loss, accuracy
+
+# 평가 데이터 전체에 대해 일괄적으로 평가를 수행
+def run_test(x, y):
+    output, _ = forward_neuralnet(x)    # 신경망 부분에 대한 순전파 처리만 수행
+    accuracy = eval_accuracy(output, y) # 정확도를 계산해서 반환
+
+    return accuracy
