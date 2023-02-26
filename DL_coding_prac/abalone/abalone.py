@@ -148,3 +148,7 @@ def run_test(x, y):
     accuracy = eval_accuracy(output, y) # 정확도를 계산해서 반환
 
     return accuracy
+
+# 단층 퍼셉트론에 대한 순전파 및 역전파 함수 정의
+# 단층 퍼셉트론 신경망 부분에 대해 순전파 처리와 역전파 처리를 수행하는 두 함수를 정의
+
