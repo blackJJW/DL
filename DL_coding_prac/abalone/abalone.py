@@ -151,4 +151,21 @@ def run_test(x, y):
 
 # 단층 퍼셉트론에 대한 순전파 및 역전파 함수 정의
 # 단층 퍼셉트론 신경망 부분에 대해 순전파 처리와 역전파 처리를 수행하는 두 함수를 정의
+def forward_neuralnet(x):
+    global weight, bias
+    output = np.matmul(x, weight) + bias # 입력 행렬 x에 대해 가중치 weight를 곱하고 편향 벡터 bias를 더하는 간단한 방법으로 신경망 출력에 해당하는 output 행렬을 생성
+    # 가중치 곱셈은 행렬끼리의 곱셈, 편향 덧셈은 행렬과 벡터의 덧셈
 
+    return output, x
+
+# 역전파 처리를 수행
+def backprop_neuralnet(G_output, x):
+    global weight, bias
+    g_output_w = x.transpose()
+    
+    # G_w, G_b : weight, bias 성분의 손실 기울기
+    G_w = np.matmul(g_output_w, G_output)
+    G_b = np.sum(G_output, axis = 0)
+
+    weight -= LEARNING_RATE * G_w
+    bias -= LEARNING_RATE * G_b
