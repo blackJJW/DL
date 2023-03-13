@@ -189,3 +189,8 @@ def backprop_postproc(G_loss, diff):
     G_output = g_diff_output * G_diff
 
     return G_output
+
+# 정확도 계산 함수 계산
+def eval_accuracy(output, y):
+    mdiff = np.mean(np.abs((output - y) / y))
+    return 1 - mdiff
